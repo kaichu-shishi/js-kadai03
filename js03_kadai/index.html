@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase:v9:Chatアプリ</title>
+    <link rel="stylesheet" href="sass_plus_css/styles.css">
+</head>
+
+<body>
+
+<!-- コンテンツ表示画面 -->
+<div class="chat-input-and-send">
+    <p class="chat-input-and-send__yourIcon">アイコン：</p>
+    <input type="radio" name="iconSelect" value="1" id="icon1" checked><label for="icon1"></label>
+    <input type="radio" name="iconSelect" value="2" id="icon2"><label for="icon2"></label>
+    <input type="radio" name="iconSelect" value="3" id="icon3"><label for="icon3"></label>
+    <input type="radio" name="iconSelect" value="4" id="icon4"><label for="icon4"></label>
+    <input type="radio" name="iconSelect" value="5" id="icon5"><label for="icon5"></label>
+    <p class="chat-input-and-send__name">名前：<input type="text" id="uname" size="40" maxlength="24" placeholder="あなたの表示名を入力してください"></p>
+    <textarea class="chat-input-and-send__text" id="text" cols="45" rows="10" placeholder="送りたいメッセージを入力してください"></textarea>
+    <button class="chat-input-and-send__send" id="send">送信</button>
+</div><!-- .chat-input-and-send -->
+<div class="chat-sent-messages-wrapper">
+    <div class="chat-sent-messages" id="output">
+    </div><!-- .chat-sent-messages -->
+</div><!-- .chat-sent-messages-wrapper -->
+<!--/ コンテンツ表示画面 -->
+
+
+
+
+<!-- JQuery -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<!-- JQuery -->
+
+
+
+
+<!--** 以下Firebase **-->
+<script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-app.js";
+    import { getDatabase, ref, push, set, onChildAdded, remove, onChildRemoved } 
+    from "https://www.gstatic.com/firebasejs/9.14.0/firebase-database.js";
+    // TODO: Add SDKs for Firebase products that you want to use
+    // https://firebase.google.com/docs/web/setup#available-libraries
+  
+    // Your web app's Firebase configuration
+    
+  
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+
+
+
+    //Realtime Databaseを使う二行を追加
+    const db  = getDatabase(app); //RealtimeDBに接続
+    const dbRef = ref(db, "dev245/thread001"); //RealtimeDB内の”dev245/thread001”を使う
+    const dbRef2 = ref(db, "dev245/thread001_score");
+
+    
+
+
+
+    //送信ボタンを押したときの処理
+    $("#send").on("click", function(){
+        let now = new Date();
+        const Year = now.getFullYear();
+        const Month = now.getMonth()+1;
+        const Day = now.getDate();
+        const Hour = now.getHours();
+        const Min = now.getMinutes();
+        const Sec = now.getSeconds();
+        const msg = {
+            yourIcon : $("input[type=radio]:checked").val(),
+            uname : $("#uname").val(),
+            datetime : Year + "年" + Month + "月" + Day + "日" + Hour + ":" + Min + ":" + Sec,
+            text : $("#text").val()
+        };
+        console.log(msg);
+        const newPostRef = push(dbRef); //チャットに送るデータにユニークキーをつけたい
+        set(newPostRef, msg);
+        $("#uname").val("");
+        $("#text").val("");
+    });
+
+
+    // チャット内の送信ボタンを押したときの処理
+    $(document).on('click', '.chat-sent-messages__scoring-button', function() {
+        let clickDom = event.target;
+        let parentDom = clickDom.parentElement;
+
+        let score = parentDom.firstElementChild.firstElementChild;
+        let feedback = parentDom.firstElementChild.nextElementSibling;
+        
+        let idAsKey = clickDom.id;
+        let scoreValue = $(score).val();
+        let feedbackValue = $(feedback).val();
+
+        const comment = {
+            key : idAsKey,
+            points : scoreValue,
+            text : feedbackValue
+        };
+
+        const newPostRef2 = push(dbRef2);
+        set(newPostRef2, comment);
+
+        $(score).val('');
+        $(feedback).val('');
+    });
+
+
+    // onChildAdded(dbRef);//「Realtime Databaseの二番目の値（今回はdev245/thread001）を監視するよ」みたいなイメージ
+    // onChildAdded(dbRef, function(data){});//dataが入ってきたら、関数の処理を実行するよ。dataは本当はaでもbでもなんでもいい変数名。
+    onChildAdded(dbRef, function(data){
+        const msg = data.val();//val()はFirebaseの関数。入ってきたdataからデータを取り出して、変数msgに代入する。
+        const key = data.key; //ユニークKEYを取得する
+        
+        let h = '<div class="chat-sent-messages__wrapper">';
+            h += '<div class="chat-sent-messages__message">';
+            h += '<img class="chat-sent-messages__message-yourIcon" src="./images/icon'+msg.yourIcon+'.png">';
+            h += msg.uname;
+            h += '　';
+            h += msg.datetime;
+            h += '<br>';
+            h += msg.text;
+            h += '</div>';
+            h += `<div class="chat-sent-messages__scoring js${key}">`;
+            h += `<p>点数：<input class="chat-sent-messages__scoring-input js${key}" type="number">点</p>`;
+            h += `<textarea class="chat-sent-messages__scoring-textarea js${key}" placeholder="ここにフィードバックを入力してください"></textarea>`;
+            h += `<button class="chat-sent-messages__scoring-button js${key}" id="js${key}">送信</button>`;
+            h += '</div>';
+            h += `<div class="chat-sent-messages__displaying-feedback js${key}">`;
+            h += '</div>';
+            h += '</div>';
+            $("#output").append(h);
+            //縦に分けるとメンテナンスしやすい！！
+    });
+
+
+    onChildAdded(dbRef2, function(data){
+        const comment = data.val();
+
+        let h = `
+            <div class="chat-sent-messages__displaying-feedback-item">
+                <p>${comment.points}点</p>
+                <p>${comment.text}</p>
+            </div>
+        `;
+
+        $(`.chat-sent-messages__displaying-feedback.${comment.key}`).append(h);
+    });
+</script>
+
+
+</body>
+</html>
