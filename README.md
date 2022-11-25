@@ -10,7 +10,7 @@
 - 動的に生成したbutton要素をクリックしたときにもイベントが発火するようにした点
   - 参考記事：https://goat-inc.co.jp/blog/1952/
 - 動的に生成したbutton要素をクリックしたとき、親や子や兄弟のDOMを取得できるようにした点
-- 参考記事：https://www.javadrive.jp/javascript/dom/index12.html
+  - 参考記事：https://www.javadrive.jp/javascript/dom/index12.html
 
 ## ③難しかった点・次回トライしたいこと(又は機能)
 - 動的に生成した要素を個別に指定しようとするとき、クラス名やid名の付け方および取得の仕方を工夫する必要があったのが難しかった
